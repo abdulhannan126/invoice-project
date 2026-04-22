@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Modal } from "@mantine/core";
+import { Modal, Pagination } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import "./customers.css";
 
 function Customers() {
   const [opened, { open, close }] = useDisclosure(false);
   const [customers, setCustomers] = useState([]);
+  const [sortBy, setSortBy] = useState("default");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -16,10 +17,14 @@ function Customers() {
 
   const [editId, setEditId] = useState(null);
 
+  // pagination state
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 5;
+
   useEffect(() => {
     fetchCustomers();
   }, []);
-
+//////
   async function fetchCustomers() {
     try {
       const response = await axios.get("http://127.0.0.1:5000/customers");
@@ -98,6 +103,47 @@ function Customers() {
     }
   }
 
+  //sortedCustomers variable
+  const sortedCustomers = [...customers].sort((a, b) => {
+    if (sortBy === "name-asc") {
+      return a.name.localeCompare(b.name);
+    }
+
+    if (sortBy === "name-desc") {
+      return b.name.localeCompare(a.name);
+    }
+
+    if (sortBy === "phone-asc") {
+      return Number(a.phone) - Number(b.phone);
+    }
+
+    if (sortBy === "phone-desc") {
+      return Number(b.phone) - Number(a.phone);
+    }
+
+    return 0;
+  });
+  ////////////
+
+  // pagination working on sortedCustomers
+  const totalPages = Math.ceil(sortedCustomers.length / itemsPerPage);
+
+  const paginatedCustomers = sortedCustomers.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
+  /////////////
+
+  useEffect(() => {
+    if (totalPages > 0 && page > totalPages) {
+      setPage(totalPages);
+    }
+
+    if (customers.length === 0) {
+      setPage(1);
+    }
+  }, [customers, totalPages, page]);
+
   return (
     <div className="customers-page">
       <div className="customers-header">
@@ -109,17 +155,33 @@ function Customers() {
         </div>
       </div>
 
+{/* /// sort by  */}
       <div className="customers-top">
         <h3 className="form-title">CUSTOMERS LIST</h3>
 
-        <button
-          type="button"
-          className="add-btn"
-          onClick={handleOpenAddModal}
-        >
-          + Add Customer
-        </button>
+        <div className="customers-controls">
+          <button
+            type="button"
+            className="add-btn"
+            onClick={handleOpenAddModal}
+          >
+            + Add Customer
+          </button>
+
+          <select
+            className="sort-select"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="default">Default</option>
+            <option value="name-asc">Name A-Z</option>
+            <option value="name-desc">Name Z-A</option>
+            <option value="phone-asc">Phone Low to High</option>
+            <option value="phone-desc">Phone High to Low</option>
+          </select>
+        </div>
       </div>
+{/* /// */}
 
       <div className="table-wrapper">
         <table className="customers-table">
@@ -135,9 +197,9 @@ function Customers() {
 
           <tbody>
             {customers.length > 0 ? (
-              customers.map((item, index) => (
+              paginatedCustomers.map((item, index) => (
                 <tr key={item.id}>
-                  <td>{index + 1}</td>
+                  <td>{(page - 1) * itemsPerPage + index + 1}</td>
                   <td>{item.name}</td>
                   <td>{item.phone}</td>
                   <td>{item.address || "-"}</td>
@@ -173,72 +235,24 @@ function Customers() {
         </table>
       </div>
 
-      <Modal
-        opened={opened}
-        onClose={() => {
-          resetForm();
-          close();
-        }}
-        title={editId ? "Edit Customer" : "Add Customer"}
-        centered
-        size="lg"
-        radius="md"
-      >
-        <form className="customer-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Customer Name *</label>
-            <p>Enter full customer name</p>
-            <input
-              type="text"
-              name="name"
-              placeholder="Enter customer name"
-              value={formData.name}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Phone Number</label>
-            <p>Enter mobile number</p>
-            <input
-              type="text"
-              name="phone"
-              placeholder="e.g. 9876543210"
-              value={formData.phone}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Address</label>
-            <p>Optional address field</p>
-            <textarea
-              name="address"
-              rows="4"
-              placeholder="Enter address"
-              value={formData.address}
-              onChange={handleChange}
-            ></textarea>
-          </div>
-
-          <div className="button-group">
-            <button type="submit" className="add-btn">
-              {editId ? "Update Customer" : "+ Add Customer"}
-            </button>
-
-            <button
-              type="button"
-              className="clear-btn"
-              onClick={() => {
-                resetForm();
-                close();
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </Modal>
+      {customers.length > 0 && (
+        <div
+          style={{
+            marginTop: "20px",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <Pagination
+            total={totalPages}
+            value={page}
+            onChange={setPage}
+            withEdges
+            color="orange"
+            radius="md"
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useDisclosure } from "@mantine/hooks";
-import { Modal } from "@mantine/core";
+import { Modal, Pagination } from "@mantine/core";
 import "./Products.css";
 
 function Products() {
   const [opened, { open, close }] = useDisclosure(false);
   const [products, setProducts] = useState([]);
+  const [sortBy, setSortBy] = useState("default");
+
 
   const [formData, setFormData] = useState({
     name: "",
@@ -15,6 +17,10 @@ function Products() {
   });
 
   const [editId, setEditId] = useState(null);
+
+  // pagination state
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     fetchProducts();
@@ -68,7 +74,7 @@ function Products() {
         await axios.post("http://127.0.0.1:5000/products", formData);
       }
 
-      fetchProducts();
+      await fetchProducts();
       resetForm();
       close();
     } catch (error) {
@@ -91,35 +97,103 @@ function Products() {
   async function handleDelete(id) {
     try {
       await axios.delete(`http://127.0.0.1:5000/products/${id}`);
-      fetchProducts();
+      await fetchProducts();
     } catch (error) {
       console.error("Delete product error:", error);
       alert(error.response?.data?.error || "Product delete failed");
     }
   }
+  
+  //sortedProducts variable
+  const sortedProducts = [...products].sort((a, b) => {
+  if (sortBy === "name-asc") {
+    return a.name.localeCompare(b.name);
+  }
+
+  if (sortBy === "name-desc") {
+    return b.name.localeCompare(a.name);
+  }
+
+  if (sortBy === "price-asc") {
+    return Number(a.price) - Number(b.price);
+  }
+
+  if (sortBy === "price-desc") {
+    return Number(b.price) - Number(a.price);
+  }
+
+  if (sortBy === "unit-asc") {
+    return String(a.unit).localeCompare(String(b.unit));
+  }
+
+  if (sortBy === "unit-desc") {
+    return String(b.unit).localeCompare(String(a.unit));
+  }
+
+  return 0;
+});
+ ////////////
+
+
+// pagination working on sortedProducts
+ const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
+
+const paginatedProducts = sortedProducts.slice(
+  (page - 1) * itemsPerPage,
+  page * itemsPerPage
+);
+/////////////
+
+  useEffect(() => {
+    if (totalPages > 0 && page > totalPages) {
+      setPage(totalPages);
+    }
+    if (products.length === 0) {
+      setPage(1);
+    }
+  }, [products, totalPages, page]);
 
   return (
     <div className="products-page">
-      <div className="products-header">
-        <div className="step-badge">1</div>
+     <div className="products-header">
+       <div className="step-badge">1</div>
 
-        <div>
-          <h2>Products</h2>
+      <div>
+       <h2>Products</h2>
           <p>Add products that can be added to invoices</p>
         </div>
       </div>
 
+{/* /// sort by  */}
       <div className="products-top">
-        <h3 className="form-title">PRODUCTS LIST</h3>
+     <h3 className="form-title">PRODUCTS LIST</h3>
 
-        <button
-          type="button"
-          className="add-btn"
-          onClick={handleOpenAddModal}
-        >
-          + Add Product
-        </button>
-      </div>
+     <div className="products-controls">
+     <button
+      type="button"
+      className="add-btn"
+      onClick={handleOpenAddModal}
+    >
+      + Add Product
+    </button>
+
+    <select
+      className="sort-select"
+      value={sortBy}
+      onChange={(e) => setSortBy(e.target.value)}
+    >
+      <option value="default">Default</option>
+      <option value="name-asc">Name A-Z</option>
+      <option value="name-desc">Name Z-A</option>
+      <option value="price-asc">Price Low to High</option>
+      <option value="price-desc">Price High to Low</option>
+      <option value="unit-asc">Unit A-Z</option>
+      <option value="unit-desc">Unit Z-A</option>
+    </select>
+  </div>
+  </div>
+{/* /// */}
+
 
       <div className="table-wrapper">
         <table className="products-table">
@@ -131,25 +205,25 @@ function Products() {
               <th>Unit</th>
               <th>Actions</th>
             </tr>
-          </thead>
+        </thead>
 
           <tbody>
             {products.length > 0 ? (
-              products.map((item, index) => (
+           paginatedProducts.map((item, index) => (
                 <tr key={item.id}>
-                  <td>{index + 1}</td>
+              <td>{(page - 1) * itemsPerPage + index + 1}</td>
                   <td>{item.name}</td>
                   <td>Rs. {item.price}</td>
                   <td>{item.unit}</td>
                   <td>
-                    <div className="action-buttons">
-                      <button
-                        type="button"
+                   <div className="action-buttons">
+                  <button
+                    type="button"
                         className="edit-btn"
                         onClick={() => handleEdit(item)}
                       >
                         Edit
-                      </button>
+                 </button>
 
                       <button
                         type="button"
@@ -173,6 +247,26 @@ function Products() {
         </table>
       </div>
 
+     {products.length > 0 && (
+  <div
+    style={{
+      marginTop: "20px",
+      display: "flex",
+      justifyContent: "center",
+    }}
+  >
+    <Pagination
+      total={totalPages}
+      value={page}
+      onChange={setPage}
+      withEdges
+      color="orange"
+      radius="md"
+      size="md"
+    />
+  </div>
+)}
+
       <Modal
         opened={opened}
         onClose={() => {
@@ -189,7 +283,7 @@ function Products() {
             <label>Product Name *</label>
             <p>e.g. Rice, Sugar, Cooking Oil</p>
             <input
-              type="text"
+          type="text"
               name="name"
               placeholder="Enter product name"
               value={formData.name}
@@ -200,7 +294,7 @@ function Products() {
           <div className="form-group">
             <label>Price (per unit) *</label>
             <p>Price in Rupees</p>
-            <input
+          <input
               type="number"
               name="price"
               placeholder="e.g. 60"
@@ -213,16 +307,16 @@ function Products() {
             <label>Unit *</label>
             <p>How is this product measured?</p>
             <select name="unit" value={formData.unit} onChange={handleChange}>
-              <option value="kg">kg</option>
-              <option value="piece">piece</option>
+            <option value="kg">kg</option>
+             <option value="piece">piece</option>
               <option value="litre">litre</option>
               <option value="dozen">dozen</option>
-              <option value="packet">packet</option>
+         <option value="packet">packet</option>
               <option value="box">box</option>
             </select>
           </div>
 
-          <div className="button-group">
+         <div className="button-group">
             <button type="submit" className="add-btn">
               {editId ? "Update Product" : "+ Add Product"}
             </button>
@@ -235,13 +329,15 @@ function Products() {
                 close();
               }}
             >
-              Cancel
-            </button>
-          </div>
-        </form>
+            Cancel
+           </button>
+        </div>
+      </form>
       </Modal>
-    </div>
+ </div>
   );
 }
 
 export default Products;
+
+
