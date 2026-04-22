@@ -3,10 +3,27 @@ import axios from "axios";
 import { useDisclosure } from "@mantine/hooks";
 import { Modal } from "@mantine/core";
 import "./Products.css";
+import { Pagination } from '@mantine/core';
+
 
 function Products() {
   const [opened, { open, close }] = useDisclosure(false);
   const [products, setProducts] = useState([]);
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState(""); // state to hold user's choic
+  const [searchQuery, setSearchQuery] = useState("");
+
+  let sortedProducts = [...products];
+
+  if (sortBy === "name") {
+    sortedProducts.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sortBy === "price-low") {
+    sortedProducts.sort((a, b) => a.price - b.price);
+  } else if (sortBy === "price-high") {
+    sortedProducts.sort((a, b) => b.price - a.price);
+  }
+
+  const visible = sortedProducts.slice((page - 1) * 5, page * 5);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -17,13 +34,16 @@ function Products() {
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      fetchProducts(searchQuery);
+    }, 300);
 
-  async function fetchProducts() {
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  async function fetchProducts(query = "") {
     try {
-      const response = await axios.get("http://127.0.0.1:5000/products");
-      console.log("API products:", response.data);
+      const response = await axios.get(`http://localhost:5001/products?search=${query}`);
       setProducts(response.data);
     } catch (error) {
       console.error("Fetch products error:", error);
@@ -63,12 +83,12 @@ function Products() {
 
     try {
       if (editId) {
-        await axios.put(`http://127.0.0.1:5000/products/${editId}`, formData);
+        await axios.put(`http://localhost:5001/products/${editId}`, formData);
       } else {
-        await axios.post("http://127.0.0.1:5000/products", formData);
+        await axios.post("http://localhost:5001/products", formData);
       }
 
-      fetchProducts();
+      fetchProducts(searchQuery);
       resetForm();
       close();
     } catch (error) {
@@ -90,8 +110,8 @@ function Products() {
 
   async function handleDelete(id) {
     try {
-      await axios.delete(`http://127.0.0.1:5000/products/${id}`);
-      fetchProducts();
+      await axios.delete(`http://localhost:5001/products/${id}`);
+      fetchProducts(searchQuery);
     } catch (error) {
       console.error("Delete product error:", error);
       alert(error.response?.data?.error || "Product delete failed");
@@ -112,13 +132,37 @@ function Products() {
       <div className="products-top">
         <h3 className="form-title">PRODUCTS LIST</h3>
 
-        <button
-          type="button"
-          className="add-btn"
-          onClick={handleOpenAddModal}
-        >
-          + Add Product
-        </button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <input
+            type="text"
+            placeholder="Search by name..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1); // reset to first page on search
+            }}
+            style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc", minWidth: "200px" }}
+          />
+
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+          >
+            <option value="">Default Sorting</option>
+            <option value="name">Name (A to Z)</option>
+            <option value="price-low">Price (Lowest first)</option>
+            <option value="price-high">Price (Highest first)</option>
+          </select>
+
+          <button
+            type="button"
+            className="add-btn"
+            onClick={handleOpenAddModal}
+          >
+            + Add Product
+          </button>
+        </div>
       </div>
 
       <div className="table-wrapper">
@@ -135,7 +179,7 @@ function Products() {
 
           <tbody>
             {products.length > 0 ? (
-              products.map((item, index) => (
+              visible.map((item, index) => (
                 <tr key={item.id}>
                   <td>{index + 1}</td>
                   <td>{item.name}</td>
@@ -171,6 +215,9 @@ function Products() {
             )}
           </tbody>
         </table>
+        <br />
+           <Pagination  total={Math.ceil(products.length / 5)} onChange={setPage} color="orange" radius="xs" value={page}/>
+
       </div>
 
       <Modal

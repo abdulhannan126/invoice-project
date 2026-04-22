@@ -15,6 +15,7 @@
     "@mantine/hooks": "^9.0.1",
     "@tabler/icons-react": "^3.41.1",
     "axios": "^1.15.0",
+    "mantine-datatable": "^8.3.13",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.14.0"

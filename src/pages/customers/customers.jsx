@@ -3,16 +3,26 @@ import axios from "axios";
 import { Modal } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import "./customers.css";
+import { Pagination } from "@mantine/core";
 
 function Customers() {
   const [opened, { open, close }] = useDisclosure(false);
   const [customers, setCustomers] = useState([]);
-
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     address: "",
   });
+
+  const sortedCustmers = [...customers];
+
+  if (sortBy === "name") {
+    sortedCustmers.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  const visible = sortedCustmers.slice((page - 1) * 5, page * 5);
 
   const [editId, setEditId] = useState(null);
 
@@ -22,8 +32,7 @@ function Customers() {
 
   async function fetchCustomers() {
     try {
-      const response = await axios.get("http://127.0.0.1:5000/customers");
-      console.log("Customers API:", response.data);
+      const response = await axios.get("http://localhost:5001/customers");
       setCustomers(response.data);
     } catch (error) {
       console.error("Fetch customers error:", error);
@@ -63,9 +72,9 @@ function Customers() {
 
     try {
       if (editId) {
-        await axios.put(`http://127.0.0.1:5000/customers/${editId}`, formData);
+        await axios.put(`http://localhost:5001/customers/${editId}`, formData);
       } else {
-        await axios.post("http://127.0.0.1:5000/customers", formData);
+        await axios.post("http://localhost:5001/customers", formData);
       }
 
       await fetchCustomers();
@@ -90,7 +99,7 @@ function Customers() {
 
   async function handleDelete(id) {
     try {
-      await axios.delete(`http://127.0.0.1:5000/customers/${id}`);
+      await axios.delete(`http://localhost:5001/customers/${id}`);
       await fetchCustomers();
     } catch (error) {
       console.error("Delete customer error:", error);
@@ -111,14 +120,27 @@ function Customers() {
 
       <div className="customers-top">
         <h3 className="form-title">CUSTOMERS LIST</h3>
-
-        <button
-          type="button"
-          className="add-btn"
-          onClick={handleOpenAddModal}
-        >
-          + Add Customer
-        </button>
+        <div style={{ display: "flex", gap: "5px" }}>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{
+              padding: "8px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+            }}
+          >
+            <option value="">Default Sorting</option>
+            <option value="name">Sort by Name</option>
+          </select>
+          <button
+            type="button"
+            className="add-btn"
+            onClick={handleOpenAddModal}
+          >
+            + Add Customer
+          </button>
+        </div>
       </div>
 
       <div className="table-wrapper">
@@ -135,9 +157,9 @@ function Customers() {
 
           <tbody>
             {customers.length > 0 ? (
-              customers.map((item, index) => (
+              visible.map((item, index) => (
                 <tr key={item.id}>
-                  <td>{index + 1}</td>
+                  <td>{item.id}</td>
                   <td>{item.name}</td>
                   <td>{item.phone}</td>
                   <td>{item.address || "-"}</td>
@@ -171,6 +193,14 @@ function Customers() {
             )}
           </tbody>
         </table>
+        <br />
+        <Pagination
+          value={page}
+          onChange={setPage}
+          total={Math.ceil(customers.length / 5)}
+          color="orange"
+          radius="xs"
+        />
       </div>
 
       <Modal

@@ -16,7 +16,16 @@ app.get("/", (req, res) => {
 // Get all products
 app.get("/products", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM products ORDER BY id ASC");
+    const { search } = req.query;
+    let result;
+    if (search) {
+      result = await pool.query(
+        "SELECT * FROM products WHERE name ILIKE $1 ORDER BY 1",
+        [`%${search}%`]
+      );
+    } else {
+      result = await pool.query("SELECT * FROM products ORDER BY 1");
+    }
     res.json(result.rows);
   } catch (error) {
     console.error("Products error:", error);
@@ -261,7 +270,7 @@ app.delete("/invoices/:id", async (req, res) => {
   }
 });
 
-app.listen(5000, () => {
+app.listen(5001, () => {
   console.log("Server running on port 5000");
 });
 

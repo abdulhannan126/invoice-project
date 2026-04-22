@@ -27,8 +27,7 @@ function CreateInvoice() {
 
   async function fetchCustomers() {
     try {
-      const response = await axios.get("http://127.0.0.1:5000/customers");
-      console.log("Create Invoice Customers API:", response.data);
+      const response = await axios.get("http://localhost:5001/customers");
       setCustomers(response.data);
 
       if (response.data.length > 0) {
@@ -41,8 +40,7 @@ function CreateInvoice() {
 
   async function fetchProducts() {
     try {
-      const response = await axios.get("http://127.0.0.1:5000/products");
-      console.log("Create Invoice Products API:", response.data);
+      const response = await axios.get("http://localhost:5001/products");
       setProducts(response.data);
     } catch (error) {
       console.error("Fetch products error:", error);
@@ -144,7 +142,7 @@ function CreateInvoice() {
     }
 
     try {
-      await axios.post("http://127.0.0.1:5000/invoices", {
+      await axios.post("http://localhost:5001/invoices", {
         customer_id: Number(selectedCustomerId),
         invoice_date: invoiceDate,
         subtotal,
