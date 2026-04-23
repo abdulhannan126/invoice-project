@@ -91,13 +91,24 @@ app.delete("/products/:id", async (req, res) => {
 // Get all customers
 app.get("/customers", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM customers ORDER BY id ASC");
-    res.json(result.rows);
+    const {search} = req.query;
+    let result;
+    if (search) {
+      result = await pool.query(
+        "SELECT * FROM customers WHERE name ILIKE $1 ORDER BY 1",
+        [`%${search}%`]
+      )
+    }else{
+      result = await pool.query(
+        "SELECT * FROM customers ORDER BY 1"
+      )
+    }
+    res.json(result.rows)
   } catch (error) {
-    console.error("Customers error:", error);
-    res.status(500).json({ error: error.message });
+    console.error("products error",error)
+    res.status(500).json({error:error.messagw})
   }
-});
+})
 
 // Add customer
 app.post("/customers", async (req, res) => {

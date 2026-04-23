@@ -10,6 +10,7 @@ function Customers() {
   const [customers, setCustomers] = useState([]);
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -26,18 +27,24 @@ function Customers() {
 
   const [editId, setEditId] = useState(null);
 
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
-
-  async function fetchCustomers() {
+  async function fetchCustomers(query = "") {
     try {
-      const response = await axios.get("http://localhost:5001/customers");
+      const response = await axios.get(
+        `http://localhost:5001/customers?search=${query}`,
+      );
       setCustomers(response.data);
     } catch (error) {
-      console.error("Fetch customers error:", error);
+      console.error("Fetch customers error: ", error);
     }
   }
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchCustomers(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
 
   function resetForm() {
     setFormData({
@@ -77,7 +84,7 @@ function Customers() {
         await axios.post("http://localhost:5001/customers", formData);
       }
 
-      await fetchCustomers();
+      await fetchCustomers(searchQuery);
       resetForm();
       close();
     } catch (error) {
@@ -100,7 +107,7 @@ function Customers() {
   async function handleDelete(id) {
     try {
       await axios.delete(`http://localhost:5001/customers/${id}`);
-      await fetchCustomers();
+      await fetchCustomers(searchQuery);
     } catch (error) {
       console.error("Delete customer error:", error);
       alert(error.response?.data?.error || "Customer delete failed");
@@ -121,6 +128,21 @@ function Customers() {
       <div className="customers-top">
         <h3 className="form-title">CUSTOMERS LIST</h3>
         <div style={{ display: "flex", gap: "5px" }}>
+          <input
+            type="text"
+            placeholder="Search by customer name..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1); // reset to first page on search
+            }}
+            style={{
+              padding: "8px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              minWidth: "200px",
+            }}
+          />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
