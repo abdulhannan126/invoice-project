@@ -10,7 +10,7 @@ function Products() {
   const [opened, { open, close }] = useDisclosure(false);
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState(""); // state to hold user's choic
+  const [sortBy, setSortBy] = useState(""); 
   const [searchQuery, setSearchQuery] = useState("");
 
   let sortedProducts = [...products];
@@ -23,24 +23,17 @@ function Products() {
     sortedProducts.sort((a, b) => b.price - a.price);
   }
 
-  const visible = sortedProducts.slice((page - 1) * 5, page * 5);
 
   const [formData, setFormData] = useState({
     name: "",
     price: "",
     unit: "kg",
+    quantity: 0
   });
 
   const [editId, setEditId] = useState(null);
 
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchProducts(searchQuery);
-    }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
-
+  
   async function fetchProducts(query = "") {
     try {
       const response = await axios.get(`http://localhost:5001/products?search=${query}`);
@@ -50,11 +43,20 @@ function Products() {
     }
   }
 
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchProducts(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+  
   function resetForm() {
     setFormData({
       name: "",
       price: "",
       unit: "kg",
+      quantity: 0
     });
     setEditId(null);
   }
@@ -102,6 +104,7 @@ function Products() {
       name: product.name,
       price: product.price,
       unit: product.unit,
+      quantity: product.quantity
     });
 
     setEditId(product.id);
@@ -132,22 +135,22 @@ function Products() {
       <div className="products-top">
         <h3 className="form-title">PRODUCTS LIST</h3>
 
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <input
             type="text"
-            placeholder="Search by name..."
+            placeholder="Search by name,price"
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
-              setPage(1); // reset to first page on search
+              setPage(1);
             }}
-            style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc", minWidth: "200px" }}
+            className="products-search-input"
           />
 
           <select 
             value={sortBy} 
             onChange={(e) => setSortBy(e.target.value)}
-            style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+            className="products-sort-select"
           >
             <option value="">Default Sorting</option>
             <option value="name">Name (A to Z)</option>
@@ -173,18 +176,24 @@ function Products() {
               <th>Product</th>
               <th>Price</th>
               <th>Unit</th>
+              <th>Quantity</th>
               <th>Actions</th>
             </tr>
           </thead>
 
           <tbody>
             {products.length > 0 ? (
-              visible.map((item, index) => (
+              sortedProducts.map((item, index) => (
                 <tr key={item.id}>
-                  <td>{index + 1}</td>
+                  <td>{item.id}</td>
                   <td>{item.name}</td>
                   <td>Rs. {item.price}</td>
                   <td>{item.unit}</td>
+                  <td>
+                    <span className={item.quantity <= 5 ? "low-stock" : "in-stock"}>
+                      {item.quantity} {item.unit}
+                    </span>
+                  </td>
                   <td>
                     <div className="action-buttons">
                       <button
@@ -215,9 +224,6 @@ function Products() {
             )}
           </tbody>
         </table>
-        <br />
-           <Pagination  total={Math.ceil(products.length / 5)} onChange={setPage} color="orange" radius="xs" value={page}/>
-
       </div>
 
       <Modal
@@ -267,6 +273,18 @@ function Products() {
               <option value="packet">packet</option>
               <option value="box">box</option>
             </select>
+          </div>
+
+          <div className="form-group">
+            <label>Quantity (stock)</label>
+            <p>How many quantity do you have in stock?</p>
+            <input type="number"
+            name="quantity"
+            placeholder="e.g. 100"
+            min="0"
+            value={formData.quantity}
+            onChange={handleChange}
+            />
           </div>
 
           <div className="button-group">

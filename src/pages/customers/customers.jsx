@@ -17,13 +17,9 @@ function Customers() {
     address: "",
   });
 
-  const sortedCustmers = [...customers];
-
   if (sortBy === "name") {
-    sortedCustmers.sort((a, b) => a.name.localeCompare(b.name));
+    customers.sort((a, b) => a.name.localeCompare(b.name));
   }
-
-  const visible = sortedCustmers.slice((page - 1) * 5, page * 5);
 
   const [editId, setEditId] = useState(null);
 
@@ -130,11 +126,11 @@ function Customers() {
         <div style={{ display: "flex", gap: "5px" }}>
           <input
             type="text"
-            placeholder="Search by customer name..."
+            placeholder="Search by customer name, address"
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
-              setPage(1); // reset to first page on search
+              setPage(1); 
             }}
             style={{
               padding: "8px",
@@ -179,7 +175,7 @@ function Customers() {
 
           <tbody>
             {customers.length > 0 ? (
-              visible.map((item, index) => (
+              customers.map((item, index) => (
                 <tr key={item.id}>
                   <td>{item.id}</td>
                   <td>{item.name}</td>
@@ -215,14 +211,6 @@ function Customers() {
             )}
           </tbody>
         </table>
-        <br />
-        <Pagination
-          value={page}
-          onChange={setPage}
-          total={Math.ceil(customers.length / 5)}
-          color="orange"
-          radius="xs"
-        />
       </div>
 
       <Modal

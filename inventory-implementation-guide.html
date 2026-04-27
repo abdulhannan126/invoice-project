@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Page Implementation Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-purple: #7c6ef2;
+            --brand-purple-dark: #6452d9;
+            --bg-page: #ffffff;
+            --bg-surface: #f8f9fc;
+            --text-primary: #1e1b2e;
+            --text-secondary: #4b5563;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --code-bg: #1a1a2e;
+            --code-text: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header Styles */
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .title-gradient {
+            background: linear-gradient(135deg, var(--brand-purple), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Section Styles */
+        section {
+            margin-bottom: 50px;
+            background: var(--bg-surface);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            page-break-inside: avoid;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .section-number {
+            background: linear-gradient(135deg, var(--brand-purple), var(--brand-purple-dark));
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(124, 110, 242, 0.3);
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 25px 0 15px 0;
+            color: var(--brand-purple);
+        }
+
+        p {
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Code Block Styles */
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        code {
+            font-family: inherit;
+        }
+
+        .code-comment { color: #6a9955; }
+        .code-keyword { color: #569cd6; }
+        .code-string { color: #ce9178; }
+        .code-function { color: #dcdcaa; }
+
+        /* Labels */
+        .label {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .label-before {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .label-after {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: #15803d;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        /* Flow Diagram */
+        .flow-diagram {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 30px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+            section {
+                box-shadow: none;
+                border: 1px solid #ccc;
+            }
+            .code-bg {
+                background: #f4f4f4 !important;
+                color: #333 !important;
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 class="title-gradient">Inventory Page Implementation Guide</h1>
+        <p class="subtitle">Converting Products Page → Full Inventory System with Stock Tracking</p>
+    </header>
+
+    <section>
+        <div class="section-header">
+            <div class="section-number">1</div>
+            <h2>What We Are Building</h2>
+        </div>
+        <p>The current "Products" page will be upgraded into a comprehensive Inventory Management page. Key features include:</p>
+        <ul>
+            <li><strong>Stock Tracking:</strong> The product form will now ask for 'Quantity' (stock level) in addition to Name, Price, and Unit.</li>
+            <li><strong>Visual Indicators:</strong> The inventory table will display current stock with color-coded alerts (e.g., red for low stock).</li>
+            <li><strong>Automated Deduction:</strong> When a user creates and saves an invoice, the quantities of the purchased items will automatically be deducted from the inventory.</li>
+            <li><strong>Stock Validation:</strong> If a user tries to invoice an item with insufficient stock, the system will prevent the save and warn the user.</li>
+        </ul>
+    </section>
+
+    <section>
+        <div class="section-header">
+            <div class="section-number">2</div>
+            <h2>Database Changes (Step 1)</h2>
+        </div>
+        <p>We need to modify the existing <code>products</code> table in PostgreSQL to include a <code>quantity</code> column.</p>
+        
+        <pre><code><span class="code-comment">-- Run this in your PostgreSQL database (psql or pgAdmin)</span>
+<span class="code-keyword">ALTER TABLE</span> products <span class="code-keyword">ADD COLUMN</span> quantity <span class="code-keyword">INTEGER NOT NULL DEFAULT</span> 0;</code></pre>
+        <p><em>Note: This command safely adds the <code>quantity</code> column. All existing products will default to a stock quantity of 0.</em></p>
+    </section>
+
+    <section>
+        <div class="section-header">
+            <div class="section-number">3</div>
+            <h2>Backend Changes - index.js (Step 2)</h2>
+        </div>
+        <p>Update the Express routes in <code>invoice-backend/index.js</code> to handle the new quantity data and implement stock deduction.</p>
+
+        <h3>3a. Update Add Product Route</h3>
+        <span class="label label-before">BEFORE (Old Code)</span>
+        <pre><code>app.post(<span class="code-string">"/products"</span>, <span class="code-keyword">async</span> (req, res) => {
+  <span class="code-keyword">const</span> { name, price, unit } = req.body;
+  <span class="code-keyword">const</span> result = <span class="code-keyword">await</span> pool.query(
+    <span class="code-string">"INSERT INTO products (name, price, unit) VALUES ($1, $2, $3) RETURNING *"</span>,
+    [name, price, unit]
+  );
+  res.json(result.rows[0]);
+});</code></pre>
+
+        <span class="label label-after">AFTER (New Code)</span>
+        <pre><code>app.post(<span class="code-string">"/products"</span>, <span class="code-keyword">async</span> (req, res) => {
+  <span class="code-keyword">const</span> { name, price, unit, quantity } = req.body;  <span class="code-comment">// &larr; Add quantity</span>
+  <span class="code-keyword">const</span> result = <span class="code-keyword">await</span> pool.query(
+    <span class="code-string">"INSERT INTO products (name, price, unit, quantity) VALUES ($1, $2, $3, $4) RETURNING *"</span>,
+    [name, price, unit, quantity]  <span class="code-comment">// &larr; Add quantity</span>
+  );
+  res.json(result.rows[0]);
+});</code></pre>
+
+        <h3>3b. Update Edit Product Route</h3>
+        <span class="label label-before">BEFORE</span>
+        <pre><code>app.put(<span class="code-string">"/products/:id"</span>, <span class="code-keyword">async</span> (req, res) => {
+  <span class="code-keyword">const</span> { name, price, unit } = req.body;
+  <span class="code-keyword">const</span> result = <span class="code-keyword">await</span> pool.query(
+    <span class="code-string">"UPDATE products SET name=$1, price=$2, unit=$3 WHERE id=$4 RETURNING *"</span>,
+    [name, price, unit, id]
+  );
+});</code></pre>
+
+        <span class="label label-after">AFTER</span>
+        <pre><code>app.put(<span class="code-string">"/products/:id"</span>, <span class="code-keyword">async</span> (req, res) => {
+  <span class="code-keyword">const</span> { name, price, unit, quantity } = req.body;  <span class="code-comment">// &larr; Add quantity</span>
+  <span class="code-keyword">const</span> result = <span class="code-keyword">await</span> pool.query(
+    <span class="code-string">"UPDATE products SET name=$1, price=$2, unit=$3, quantity=$4 WHERE id=$5 RETURNING *"</span>,
+    [name, price, unit, quantity, id]  <span class="code-comment">// &larr; Add quantity</span>
+  );
+});</code></pre>
+    </section>
+
+    <section>
+        <div class="section-header">
+            <div class="section-number">4</div>
+            <h2>Frontend - Products.jsx (Step 3)</h2>
+        </div>
+        <p>Update the React component <code>src/pages/products/Products.jsx</code> to include the quantity field in state, table, and form.</p>
+
+        <h3>4a. Update State & Functions</h3>
+        <pre><code><span class="code-comment">// 1. Add quantity to formData state</span>
+<span class="code-keyword">const</span> [formData, setFormData] = useState({
+  name: <span class="code-string">""</span>,
+  price: <span class="code-string">""</span>,
+  unit: <span class="code-string">"kg"</span>,
+  quantity: 0,   <span class="code-comment">// &larr; Add this line</span>
+});
+
+<span class="code-comment">// 2. Update handleEdit</span>
+<span class="code-keyword">function</span> handleEdit(product) {
+  setFormData({
+    name: product.name,
+    price: product.price,
+    unit: product.unit,
+    quantity: product.quantity,  <span class="code-comment">// &larr; Add this line</span>
+  });
+  setEditId(product.id);
+  open();
+}
+
+<span class="code-comment">// 3. Update resetForm</span>
+<span class="code-keyword">function</span> resetForm() {
+  setFormData({ name: <span class="code-string">""</span>, price: <span class="code-string">""</span>, unit: <span class="code-string">"kg"</span>, quantity: 0 }); <span class="code-comment">// &larr; Add quantity: 0</span>
+  setEditId(<span class="code-keyword">null</span>);
+}</code></pre>
+
+        <h3>4b. Update JSX (Table & Form)</h3>
+        <pre><code><span class="code-comment">&lt;!-- 1. In &lt;thead&gt;, add "Quantity" column after "Unit" --&gt;</span>
+&lt;th&gt;Quantity&lt;/th&gt;
+
+<span class="code-comment">&lt;!-- 2. In &lt;tbody&gt;, add quantity cell with conditional styling --&gt;</span>
+&lt;td&gt;
+  &lt;span className={item.quantity &lt;= 5 ? <span class="code-string">"low-stock"</span> : <span class="code-string">"in-stock"</span>}&gt;
+    {item.quantity} {item.unit}
+  &lt;/span&gt;
+&lt;/td&gt;
+
+<span class="code-comment">&lt;!-- 3. Add to Modal Form (Before button-group) --&gt;</span>
+&lt;div className=<span class="code-string">"form-group"</span>&gt;
+  &lt;label&gt;Quantity (Stock) *&lt;/label&gt;
+  &lt;p&gt;How many units do you currently have in stock?&lt;/p&gt;
+  &lt;input
+    type=<span class="code-string">"number"</span>
+    name=<span class="code-string">"quantity"</span>
+    placeholder=<span class="code-string">"e.g. 100"</span>
+    min=<span class="code-string">"0"</span>
+    value={formData.quantity}
+    onChange={handleChange}
+  /&gt;
+&lt;/div&gt;</code></pre>
+    </section>
+
+    <section>
+        <div class="section-header">
+            <div class="section-number">5</div>
+            <h2>CSS Updates - Products.css (Step 4)</h2>
+        </div>
+        <p>Add these styles to <code>src/pages/products/Products.css</code> for the stock badges.</p>
+        <pre><code><span class="code-comment">/* Stock status badges */</span>
+.in-stock {
+  color: #22c55e;
+  font-weight: 700;
+  background: rgba(34, 197, 94, 0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+.low-stock {
+  color: #ef4444;
+  font-weight: 700;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}</code></pre>
+    </section>
+
+    <section>
+        <div class="section-header">
+            <div class="section-number">6</div>
+            <h2>Complete Updated index.js (Save Invoice Route)</h2>
+        </div>
+        <p>This is the critical part: validating stock and deducting quantities when an invoice is saved.</p>
+        <pre><code>app.post(<span class="code-string">"/invoices"</span>, <span class="code-keyword">async</span> (req, res) => {
+  <span class="code-keyword">const</span> client = <span class="code-keyword">await</span> pool.connect();
+  <span class="code-keyword">try</span> {
+    <span class="code-keyword">const</span> { customer_id, invoice_date, subtotal, gst, grand_total, items } = req.body;
+
+    <span class="code-keyword">await</span> client.query(<span class="code-string">"BEGIN"</span>);
+
+    <span class="code-comment">// ✅ STEP 1: Validate stock for all items FIRST</span>
+    <span class="code-keyword">for</span> (<span class="code-keyword">const</span> item <span class="code-keyword">of</span> items) {
+      <span class="code-keyword">const</span> stockResult = <span class="code-keyword">await</span> client.query(
+        <span class="code-string">"SELECT quantity, name FROM products WHERE id = $1"</span>,
+        [item.product_id]
+      );
+      <span class="code-keyword">const</span> product = stockResult.rows[0];
+      <span class="code-keyword">if</span> (!product || product.quantity &lt; item.qty) {
+        <span class="code-keyword">await</span> client.query(<span class="code-string">"ROLLBACK"</span>);
+        <span class="code-keyword">return</span> res.status(400).json({
+          error: `Insufficient stock for "${product?.name || 'Unknown'}". 
+                  Available: ${product?.quantity ?? 0}, Requested: ${item.qty}`
+        });
+      }
+    }
+
+    <span class="code-comment">// ✅ STEP 2: Insert invoice</span>
+    <span class="code-keyword">const</span> invoiceResult = <span class="code-keyword">await</span> client.query(
+      `<span class="code-string">INSERT INTO invoices (customer_id, invoice_date, subtotal, gst, grand_total)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *</span>`,
+      [customer_id, invoice_date, subtotal, gst, grand_total]
+    );
+    <span class="code-keyword">const</span> invoice = invoiceResult.rows[0];
+
+    <span class="code-comment">// ✅ STEP 3: Insert invoice items</span>
+    <span class="code-keyword">for</span> (<span class="code-keyword">const</span> item <span class="code-keyword">of</span> items) {
+      <span class="code-keyword">await</span> client.query(
+        `<span class="code-string">INSERT INTO invoice_items (invoice_id, product_id, product_name, price, qty, unit, total)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)</span>`,
+        [invoice.id, item.product_id, item.product_name, item.price, item.qty, item.unit, item.total]
+      );
+    }
+
+    <span class="code-comment">// ✅ STEP 4: Deduct stock from inventory</span>
+    <span class="code-keyword">for</span> (<span class="code-keyword">const</span> item <span class="code-keyword">of</span> items) {
+      <span class="code-keyword">await</span> client.query(
+        `<span class="code-string">UPDATE products SET quantity = quantity - $1 WHERE id = $2</span>`,
+        [item.qty, item.product_id]
+      );
+    }
+
+    <span class="code-keyword">await</span> client.query(<span class="code-string">"COMMIT"</span>);
+    res.json(invoice);
+  } <span class="code-keyword">catch</span> (error) {
+    <span class="code-keyword">await</span> client.query(<span class="code-string">"ROLLBACK"</span>);
+    console.error(<span class="code-string">"Save invoice error:"</span>, error);
+    res.status(500).json({ error: error.message });
+  } <span class="code-keyword">finally</span> {
+    client.release();
+  }
+});</code></pre>
+    </section>
+
+    <section>
+        <div class="section-header">
+            <div class="section-number">7</div>
+            <h2>Application Flow</h2>
+        </div>
+        <div class="flow-diagram">
+User opens Inventory Page
+         ↓
+Clicks "+ Add Product"
+         ↓
+Form asks: Name, Price, Unit, Quantity ← NEW FIELD
+         ↓
+Data saved to DB (products table now has quantity column)
+         ↓
+─────────────────────────────────────────
+When customer buys (invoice created):
+─────────────────────────────────────────
+User creates invoice with products + quantities
+         ↓
+Clicks "Save Invoice"
+         ↓
+Backend checks: Is stock available? 
+   ↓ YES                    ↓ NO
+Invoice saved           Error: "Insufficient stock!"
+Stock deducted              Invoice NOT saved
+Inventory updated
+        </div>
+    </section>
+
+    <section>
+        <div class="section-header">
+            <div class="section-number">8</div>
+            <h2>Summary Checklist</h2>
+        </div>
+        <ul>
+            <li>✅ Run the SQL <code>ALTER TABLE</code> command in your database.</li>
+            <li>✅ Update <code>invoice-backend/index.js</code> (POST/PUT products, POST invoices).</li>
+            <li>✅ Update <code>src/pages/products/Products.jsx</code> state, UI, and form.</li>
+            <li>✅ Add <code>.in-stock</code> and <code>.low-stock</code> CSS classes to <code>Products.css</code>.</li>
+            <li>✅ Rename "Products" text to "Inventory" in UI headings and Sidebar (<code>layout.jsx</code>).</li>
+        </ul>
+    </section>
+
+</body>
+</html>

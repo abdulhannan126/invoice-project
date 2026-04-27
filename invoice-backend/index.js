@@ -18,14 +18,25 @@ app.get("/products", async (req, res) => {
   try {
     const { search } = req.query;
     let result;
+
     if (search) {
-      result = await pool.query(
-        "SELECT * FROM products WHERE name ILIKE $1 ORDER BY 1",
-        [`%${search}%`]
-      );
+      const isNumber = !isNaN(parseFloat(search)) && isFinite(search);
+
+      if (isNumber) {
+        result = await pool.query(
+          "SELECT * FROM products WHERE price = $1 ORDER BY 1",
+          [search],
+        );
+      } else {
+        result = await pool.query(
+          "SELECT * FROM products WHERE name ILIKE $1 ORDER BY 1",
+          [`%${search}%`],
+        );
+      }
     } else {
       result = await pool.query("SELECT * FROM products ORDER BY 1");
     }
+
     res.json(result.rows);
   } catch (error) {
     console.error("Products error:", error);
@@ -36,11 +47,11 @@ app.get("/products", async (req, res) => {
 // Add product
 app.post("/products", async (req, res) => {
   try {
-    const { name, price, unit } = req.body;
+    const { name, price, unit, quantity } = req.body;
 
     const result = await pool.query(
-      "INSERT INTO products (name, price, unit) VALUES ($1, $2, $3) RETURNING *",
-      [name, price, unit]
+      "INSERT INTO products (name, price, unit, quantity) VALUES ($1, $2, $3, $4) RETURNING *",
+      [name, price, unit, quantity],
     );
 
     res.json(result.rows[0]);
@@ -54,11 +65,11 @@ app.post("/products", async (req, res) => {
 app.put("/products/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, unit } = req.body;
+    const { name, price, unit, quantity } = req.body;
 
     const result = await pool.query(
-      "UPDATE products SET name = $1, price = $2, unit = $3 WHERE id = $4 RETURNING *",
-      [name, price, unit, id]
+      "UPDATE products SET name = $1, price = $2, unit = $3, quantity = $4 WHERE id = $4 RETURNING *",
+      [name, price, unit, quantity, id],
     );
 
     res.json(result.rows[0]);
@@ -91,24 +102,22 @@ app.delete("/products/:id", async (req, res) => {
 // Get all customers
 app.get("/customers", async (req, res) => {
   try {
-    const {search} = req.query;
+    const { search } = req.query;
     let result;
     if (search) {
       result = await pool.query(
-        "SELECT * FROM customers WHERE name ILIKE $1 ORDER BY 1",
-        [`%${search}%`]
-      )
-    }else{
-      result = await pool.query(
-        "SELECT * FROM customers ORDER BY 1"
-      )
+        "SELECT * FROM customers WHERE name ILIKE $1 OR address ILIKE $1 ORDER BY 1",
+        [`%${search}%`],
+      );
+    } else {
+      result = await pool.query("SELECT * FROM customers ORDER BY 1");
     }
-    res.json(result.rows)
+    res.json(result.rows);
   } catch (error) {
-    console.error("products error",error)
-    res.status(500).json({error:error.messagw})
+    console.error("products error", error);
+    res.status(500).json({ error: error.messagw });
   }
-})
+});
 
 // Add customer
 app.post("/customers", async (req, res) => {
@@ -117,7 +126,7 @@ app.post("/customers", async (req, res) => {
 
     const result = await pool.query(
       "INSERT INTO customers (name, phone, address) VALUES ($1, $2, $3) RETURNING *",
-      [name, phone, address]
+      [name, phone, address],
     );
 
     res.json(result.rows[0]);
@@ -135,7 +144,7 @@ app.put("/customers/:id", async (req, res) => {
 
     const result = await pool.query(
       "UPDATE customers SET name = $1, phone = $2, address = $3 WHERE id = $4 RETURNING *",
-      [name, phone, address, id]
+      [name, phone, address, id],
     );
 
     res.json(result.rows[0]);
@@ -169,55 +178,55 @@ app.delete("/customers/:id", async (req, res) => {
 // Save invoice
 app.post("/invoices", async (req, res) => {
   const client = await pool.connect();
-
   try {
-    const {
-      customer_id,
-      invoice_date,
-      subtotal,
-      gst,
-      grand_total,
-      items,
-    } = req.body;
+    const { customer_id, invoice_date, subtotal, gst, grand_total, items } = req.body;
 
-    await client.query("BEGIN");
+    await pool.query("BEGIN")
+
+    for (const item of items) { 
+      const stockResult = await client.query(
+        "SELECT quantity, name FROM products WHERE id = $1",
+        [item.product_id]
+      )
+      const product = stockResult.rows[0]
+      if (!product || product.quantity < item.qty) {
+        await client.query("ROLLBACK")
+        return res.status(400).json({
+          error: `Insufficient stock for "${product?.name || 'Unknown'}". 
+                  Available: ${product?.quantity ?? 0}, Requested: ${item.qty}`
+        })        
+      }
+    }
 
     const invoiceResult = await client.query(
-      `INSERT INTO invoices (customer_id, invoice_date, subtotal, gst, grand_total)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
+      "INSERT INTO invoices (customer_id, invoice_date, subtotal, gst, grand_total) VALUES ($1, $2, $3, $4, $5) RETURNING *",
       [customer_id, invoice_date, subtotal, gst, grand_total]
-    );
-
-    const invoice = invoiceResult.rows[0];
+    )
+    const invoice = invoiceResult.rows[0]
 
     for (const item of items) {
       await client.query(
-        `INSERT INTO invoice_items
-         (invoice_id, product_id, product_name, price, qty, unit, total)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [
-          invoice.id,
-          item.product_id,
-          item.product_name,
-          item.price,
-          item.qty,
-          item.unit,
-          item.total,
-        ]
-      );
+        "INSERT INTO invoice_items (invoice_id, product_id, product_name, price, qty, unit, total) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        [invoice.id, item.product_id, item.product_name, item.price, item.qty, item.unit, item.total]
+      )
     }
 
-    await client.query("COMMIT");
-    res.json(invoice);
+    for (const item of items) {
+      await client.query(
+        `UPDATE products SET quantity = quantity - $1 WHERE id = $2`,
+        [item.qty, item.product_id]
+      )
+    }
+    await client.query("COMMIT")
+    res.json(invoice)
   } catch (error) {
-    await client.query("ROLLBACK");
-    console.error("Save invoice error:", error);
-    res.status(500).json({ error: error.message });
-  } finally {
-    client.release();
+      await client.query("ROLLBACK")
+      console.error("sale invoice errro: ", error)
+      res.status(500).json({error: error.message})
+  }finally{
+    client.release()
   }
-});
+})
 
 // Get all invoices with customer + items
 app.get("/invoices", async (req, res) => {
@@ -254,7 +263,7 @@ app.get("/invoices", async (req, res) => {
            total
          FROM invoice_items
          WHERE invoice_id = $1`,
-        [invoices[i].id]
+        [invoices[i].id],
       );
 
       invoices[i].items = itemsResult.rows || [];
@@ -272,6 +281,8 @@ app.delete("/invoices/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
+    await pool.query("DELETE FROM invoice_items WHERE invoice_id = $1", [id])
+
     await pool.query("DELETE FROM invoices WHERE id = $1", [id]);
 
     res.json({ message: "Invoice deleted successfully" });
@@ -281,7 +292,24 @@ app.delete("/invoices/:id", async (req, res) => {
   }
 });
 
+// get weekly sales tool
+app.get("/sales/weekly", async (req, res) => {
+  try {
+    const result = await pool.query(`
+  SELECT
+    TO_CHAR(DATE_TRUNC('week', invoice_date::date), 'DD Mon') AS week,
+    SUM(grand_total)::numeric AS total
+  FROM invoices
+  GROUP BY DATE_TRUNC('week', invoice_date::date)
+  ORDER BY DATE_TRUNC('week', invoice_date::date) ASC
+`);
+    res.json(result.rows);
+  } catch (error) {
+    console.error("weekly sales error: ", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(5001, () => {
   console.log("Server running on port 5000");
 });
-

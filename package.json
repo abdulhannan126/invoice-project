@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
+    "@mantine/charts": "^9.1.0",
     "@mantine/core": "^9.0.1",
     "@mantine/hooks": "^9.0.1",
     "@tabler/icons-react": "^3.41.1",
@@ -18,7 +19,8 @@
     "mantine-datatable": "^8.3.13",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router-dom": "^7.14.0"
+    "react-router-dom": "^7.14.0",
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

@@ -4,39 +4,81 @@ import "./layout.css";
 function Layout() {
   return (
     <div className="app-layout">
-      <nav className="top-nav">
-        <NavLink
-          to="/products"
-          className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-        >
-          Products
-        </NavLink>
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <div className="brand-icon">⚡</div>
+          <div className="brand-text">
+            <span className="brand-name">InvoiceFlow</span>
+            <span className="brand-tagline">Business Suite</span>
+          </div>
+        </div>
 
-        <NavLink
-          to="/customers"
-          className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-        >
-          Customers
-        </NavLink>
+        <nav className="sidebar-nav">
+          <span className="nav-section-label">WORKSPACE</span>
 
-        <NavLink
-          to="/create-invoice"
-          className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-        >
-          Create Invoice
-        </NavLink>
+          <NavLink
+            to="/products"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
+          >
+            <span className="nav-icon">📦</span>
+            <span className="nav-text">Products</span>
+          </NavLink>
 
-        <NavLink
-          to="/invoice-history"
-          className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-        >
-          Invoice History
-        </NavLink>
-      </nav>
+          <NavLink
+            to="/customers"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
+          >
+            <span className="nav-icon">👥</span>
+            <span className="nav-text">Customers</span>
+          </NavLink>
 
-      <div className="page-wrapper">
+          <span className="nav-section-label">BILLING</span>
+
+          <NavLink
+            to="/create-invoice"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
+          >
+            <span className="nav-icon">✏️</span>
+            <span className="nav-text">Create Invoice</span>
+          </NavLink>
+
+          <NavLink
+            to="/invoice-history"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
+          >
+            <span className="nav-icon">📋</span>
+            <span className="nav-text">History</span>
+          </NavLink>
+
+          <span className="nav-section-label">Features</span>
+
+          <NavLink
+            to="/total-sales"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
+          >
+            <span className="nav-icon">📊</span>
+            <span className="nav-text">Total Sales</span>
+          </NavLink>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-footer-badge">v1.0</div>
+        </div>
+      </aside>
+
+      <main className="page-wrapper">
         <Outlet />
-      </div>
+      </main>
     </div>
   );
 }
