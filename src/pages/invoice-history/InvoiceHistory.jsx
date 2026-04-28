@@ -13,8 +13,7 @@ function InvoiceHistory() {
 
   async function fetchInvoices() {
     try {
-      const response = await axios.get("http://127.0.0.1:5000/invoices");
-      console.log("Invoices API:", response.data);
+      const response = await axios.get("http://localhost:5001/invoices");
 
       setInvoices(response.data);
 
@@ -69,7 +68,7 @@ function InvoiceHistory() {
     if (!confirmDelete) return;
 
     try {
-      await axios.delete(`http://127.0.0.1:5000/invoices/${selectedInvoiceId}`);
+      await axios.delete(`http://localhost:5001/invoices/${selectedInvoiceId}`);
 
       alert("Invoice deleted successfully");
 
@@ -244,7 +243,6 @@ function InvoiceHistory() {
 }
 
 export default InvoiceHistory;
-
 
 
 

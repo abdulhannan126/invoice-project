@@ -8,6 +8,7 @@ function Customers() {
   const [opened, { open, close }] = useDisclosure(false);
   const [customers, setCustomers] = useState([]);
   const [sortBy, setSortBy] = useState("default");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -24,10 +25,10 @@ function Customers() {
   useEffect(() => {
     fetchCustomers();
   }, []);
-//////
+
   async function fetchCustomers() {
     try {
-      const response = await axios.get("http://127.0.0.1:5000/customers");
+      const response = await axios.get("http://127.0.0.1:5001/customers");
       console.log("Customers API:", response.data);
       setCustomers(response.data);
     } catch (error) {
@@ -68,9 +69,9 @@ function Customers() {
 
     try {
       if (editId) {
-        await axios.put(`http://127.0.0.1:5000/customers/${editId}`, formData);
+        await axios.put(`http://127.0.0.1:5001/customers/${editId}`, formData);
       } else {
-        await axios.post("http://127.0.0.1:5000/customers", formData);
+        await axios.post("http://127.0.0.1:5001/customers", formData);
       }
 
       await fetchCustomers();
@@ -95,7 +96,7 @@ function Customers() {
 
   async function handleDelete(id) {
     try {
-      await axios.delete(`http://127.0.0.1:5000/customers/${id}`);
+      await axios.delete(`http://127.0.0.1:5001/customers/${id}`);
       await fetchCustomers();
     } catch (error) {
       console.error("Delete customer error:", error);
@@ -103,22 +104,35 @@ function Customers() {
     }
   }
 
+  //filteredCustomers variable
+  const filteredCustomers = customers.filter((item) => {
+    const value = searchTerm.toLowerCase().trim();
+
+    if (!value) return true;
+
+    return (
+      String(item.name || "").toLowerCase().includes(value) ||
+      String(item.phone || "").toLowerCase().includes(value)
+    );
+  });
+  ////////////
+
   //sortedCustomers variable
-  const sortedCustomers = [...customers].sort((a, b) => {
+  const sortedCustomers = [...filteredCustomers].sort((a, b) => {
     if (sortBy === "name-asc") {
-      return a.name.localeCompare(b.name);
+      return (a.name || "").localeCompare(b.name || "");
     }
 
     if (sortBy === "name-desc") {
-      return b.name.localeCompare(a.name);
+      return (b.name || "").localeCompare(a.name || "");
     }
 
     if (sortBy === "phone-asc") {
-      return Number(a.phone) - Number(b.phone);
+      return Number(a.phone || 0) - Number(b.phone || 0);
     }
 
     if (sortBy === "phone-desc") {
-      return Number(b.phone) - Number(a.phone);
+      return Number(b.phone || 0) - Number(a.phone || 0);
     }
 
     return 0;
@@ -139,10 +153,10 @@ function Customers() {
       setPage(totalPages);
     }
 
-    if (customers.length === 0) {
+    if (sortedCustomers.length === 0) {
       setPage(1);
     }
-  }, [customers, totalPages, page]);
+  }, [sortedCustomers.length, totalPages, page]);
 
   return (
     <div className="customers-page">
@@ -155,7 +169,7 @@ function Customers() {
         </div>
       </div>
 
-{/* /// sort by  */}
+      {/* /// search and sort by  */}
       <div className="customers-top">
         <h3 className="form-title">CUSTOMERS LIST</h3>
 
@@ -167,6 +181,14 @@ function Customers() {
           >
             + Add Customer
           </button>
+
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search by customer name or phone"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
 
           <select
             className="sort-select"
@@ -181,7 +203,7 @@ function Customers() {
           </select>
         </div>
       </div>
-{/* /// */}
+      {/* /// */}
 
       <div className="table-wrapper">
         <table className="customers-table">
@@ -197,33 +219,41 @@ function Customers() {
 
           <tbody>
             {customers.length > 0 ? (
-              paginatedCustomers.map((item, index) => (
-                <tr key={item.id}>
-                  <td>{(page - 1) * itemsPerPage + index + 1}</td>
-                  <td>{item.name}</td>
-                  <td>{item.phone}</td>
-                  <td>{item.address || "-"}</td>
-                  <td>
-                    <div className="action-buttons">
-                      <button
-                        type="button"
-                        className="edit-btn"
-                        onClick={() => handleEdit(item)}
-                      >
-                        Edit
-                      </button>
+              paginatedCustomers.length > 0 ? (
+                paginatedCustomers.map((item, index) => (
+                  <tr key={item.id}>
+                    <td>{(page - 1) * itemsPerPage + index + 1}</td>
+                    <td>{item.name}</td>
+                    <td>{item.phone}</td>
+                    <td>{item.address || "-"}</td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          type="button"
+                          className="edit-btn"
+                          onClick={() => handleEdit(item)}
+                        >
+                          Edit
+                        </button>
 
-                      <button
-                        type="button"
-                        className="delete-btn"
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          className="delete-btn"
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="no-data">
+                    No matching customers found
                   </td>
                 </tr>
-              ))
+              )
             ) : (
               <tr>
                 <td colSpan="5" className="no-data">
@@ -235,7 +265,7 @@ function Customers() {
         </table>
       </div>
 
-      {customers.length > 0 && (
+      {sortedCustomers.length > 0 && (
         <div
           style={{
             marginTop: "20px",
@@ -250,11 +280,85 @@ function Customers() {
             withEdges
             color="orange"
             radius="md"
+            size="md"
           />
         </div>
       )}
+
+      <Modal
+        opened={opened}
+        onClose={() => {
+          resetForm();
+          close();
+        }}
+        title={editId ? "Edit Customer" : "Add Customer"}
+        centered
+        size="lg"
+        radius="md"
+      >
+        <form className="customer-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Customer Name *</label>
+            <p>Enter full customer name</p>
+            <input
+              type="text"
+              name="name"
+              placeholder="Enter customer name"
+              value={formData.name}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Phone Number</label>
+            <p>Enter mobile number</p>
+            <input
+              type="text"
+              name="phone"
+              placeholder="e.g. 9876543210"
+              value={formData.phone}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Address</label>
+            <p>Optional address field</p>
+            <textarea
+              name="address"
+              rows="4"
+              placeholder="Enter address"
+              value={formData.address}
+              onChange={handleChange}
+            ></textarea>
+          </div>
+
+          <div className="button-group">
+            <button type="submit" className="add-btn">
+              {editId ? "Update Customer" : "+ Add Customer"}
+            </button>
+
+            <button
+              type="button"
+              className="clear-btn"
+              onClick={() => {
+                resetForm();
+                close();
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
 
 export default Customers;
+
+
+
+
+
+

@@ -4,6 +4,10 @@ import Products from "./pages/products/Products.jsx";
 import Customers from "./pages/customers/customers.jsx";
 import CreateInvoice from "./pages/create-invoice/CreateInvoice.jsx";
 import InvoiceHistory from "./pages/invoice-history/InvoiceHistory.jsx";
+import TotalSales from "./pages/Total-sales/Totalsales.jsx";
+
+import Inventory from "./pages/inventory/Inventory.jsx";
+
 
 function App() {
   return (
@@ -14,9 +18,14 @@ function App() {
         <Route path="customers" element={<Customers />} />
         <Route path="create-invoice" element={<CreateInvoice />} />
         <Route path="invoice-history" element={<InvoiceHistory />} />
+        <Route path="Total-sales" element={<TotalSales/>}/>
+        <Route path="inventory" element={<Inventory />} />
       </Route>
+      
+      
     </Routes>
   );
 }
 
 export default App;
+
