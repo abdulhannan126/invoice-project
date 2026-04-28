@@ -20,16 +20,12 @@ function CreateInvoice() {
     },
   ]);
 
-  useEffect(() => {
-    fetchCustomers();
-    fetchProducts();
-  }, []);
-
+  
   async function fetchCustomers() {
     try {
       const response = await axios.get("http://localhost:5001/customers");
       setCustomers(response.data);
-
+      
       if (response.data.length > 0) {
         setSelectedCustomerId(String(response.data[0].id));
       }
@@ -37,11 +33,15 @@ function CreateInvoice() {
       console.error("Fetch customers error:", error);
     }
   }
-
+  
+  useEffect(() => {
+    fetchCustomers();
+    fetchProducts();
+  }, []);
   async function fetchProducts() {
     try {
       const response = await axios.get("http://localhost:5001/products");
-      setProducts(response.data);
+      setProducts(response.data.data);
     } catch (error) {
       console.error("Fetch products error:", error);
     }

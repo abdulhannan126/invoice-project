@@ -12,6 +12,7 @@ function Products() {
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState(""); 
   const [searchQuery, setSearchQuery] = useState("");
+  const [totalPages, setTotalPages] = useState(1);
 
   let sortedProducts = [...products];
 
@@ -28,35 +29,29 @@ function Products() {
     name: "",
     price: "",
     unit: "kg",
-    quantity: 0
   });
 
   const [editId, setEditId] = useState(null);
 
   
-  async function fetchProducts(query = "") {
-    try {
-      const response = await axios.get(`http://localhost:5001/products?search=${query}`);
-      setProducts(response.data);
-    } catch (error) {
-      console.error("Fetch products error:", error);
-    }
-  }
+async function fetchProducts(query = "", p = 1) {
+  const res = await axios.get(
+    `http://localhost:5001/products?search=${query}&page=${p}`
+  );
 
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchProducts(searchQuery);
-    }, 300);
+  setProducts(res.data.data);
+  setTotalPages(res.data.totalPages);
+}
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
+useEffect(() => {
+  fetchProducts(searchQuery, page);
+}, [searchQuery, page]);
   
   function resetForm() {
     setFormData({
       name: "",
       price: "",
       unit: "kg",
-      quantity: 0
     });
     setEditId(null);
   }
@@ -104,7 +99,6 @@ function Products() {
       name: product.name,
       price: product.price,
       unit: product.unit,
-      quantity: product.quantity
     });
 
     setEditId(product.id);
@@ -173,10 +167,9 @@ function Products() {
           <thead>
             <tr>
               <th>#</th>
-              <th>Product</th>
+              <th>Prouct Name</th>
               <th>Price</th>
-              <th>Unit</th>
-              <th>Quantity</th>
+              <th>Remaining Quantity</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -188,7 +181,6 @@ function Products() {
                   <td>{item.id}</td>
                   <td>{item.name}</td>
                   <td>Rs. {item.price}</td>
-                  <td>{item.unit}</td>
                   <td>
                     <span className={item.quantity <= 5 ? "low-stock" : "in-stock"}>
                       {item.quantity} {item.unit}
@@ -224,6 +216,13 @@ function Products() {
             )}
           </tbody>
         </table>
+        <div className="pagination-wrapper">
+  <Pagination
+    value={page}
+    onChange={setPage}
+    total={totalPages}
+  />
+</div>
       </div>
 
       <Modal
@@ -273,18 +272,6 @@ function Products() {
               <option value="packet">packet</option>
               <option value="box">box</option>
             </select>
-          </div>
-
-          <div className="form-group">
-            <label>Quantity (stock)</label>
-            <p>How many quantity do you have in stock?</p>
-            <input type="number"
-            name="quantity"
-            placeholder="e.g. 100"
-            min="0"
-            value={formData.quantity}
-            onChange={handleChange}
-            />
           </div>
 
           <div className="button-group">

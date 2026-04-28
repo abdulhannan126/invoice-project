@@ -5,6 +5,7 @@ import Customers from "./pages/customers/customers.jsx";
 import CreateInvoice from "./pages/create-invoice/CreateInvoice.jsx";
 import InvoiceHistory from "./pages/invoice-history/InvoiceHistory.jsx";
 import TotalSales from "./pages/total-sales/TotalSales.jsx";
+import { Inventory } from "./pages/inventory/inventory.jsx";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="create-invoice" element={<CreateInvoice />} />
         <Route path="invoice-history" element={<InvoiceHistory />} />
         <Route path="total-sales" element={<TotalSales />}/>
+        <Route path="inventory" element={<Inventory />}/>
       </Route>
     </Routes>
   );

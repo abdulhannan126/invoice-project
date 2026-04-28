@@ -27,6 +27,15 @@ function Layout() {
           </NavLink>
 
           <NavLink
+            to="/inventory"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
+          >
+            📈 Inventory
+          </NavLink>
+
+          <NavLink
             to="/customers"
             className={({ isActive }) =>
               isActive ? "nav-link active" : "nav-link"

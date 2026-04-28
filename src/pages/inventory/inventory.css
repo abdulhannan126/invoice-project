@@ -1,0 +1,126 @@
+/* ─── Inventory Page ─────────────────────────────────────── */
+.inventory-page {
+  animation: pageIn var(--ease-slow) both;
+}
+
+/* Header */
+.inventory-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.inventory-header h2 {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.inventory-header p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* MODE SWITCH */
+.mode-switch {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.mode-btn {
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-surface);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--ease-fast);
+}
+
+.mode-btn.active {
+  background: var(--brand-purple);
+  color: white;
+  border-color: var(--brand-purple);
+}
+
+/* FORM CARD */
+.inventory-form {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 28px;
+}
+
+.inventory-form select,
+.inventory-form input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  margin-right: 10px;
+}
+
+.inventory-form button {
+  height: 40px;
+  padding: 0 18px;
+  background: linear-gradient(135deg, var(--brand-purple), var(--brand-purple-dark));
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* MESSAGE */
+.msg {
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.msg.success { color: #22c55e; }
+.msg.error { color: #ef4444; }
+
+/* TABLE */
+.log-table-wrapper {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.log-table th {
+  padding: 14px 20px;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.log-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.log-table tbody tr:hover td {
+  background: #fafaff;
+}
+
+/* IN / OUT COLORS */
+.in-type {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.out-type {
+  color: #ef4444;
+  font-weight: 700;
+}

@@ -15,49 +15,61 @@ app.get("/", (req, res) => {
 
 // Get all products
 app.get("/products", async (req, res) => {
-  try {
-    const { search } = req.query;
-    let result;
+  const page = parseInt(req.query.page) || 1
+  const limit = 10
+  const offset = (page - 1) * limit
+  const search = req.query.search || ""
 
-    if (search) {
-      const isNumber = !isNaN(parseFloat(search)) && isFinite(search);
+  const data = await pool.query(
+    `SELECT * FROM products
+    WHERE name ILIKE $1
+    ORDER BY id DESC
+    LIMIT $2 OFFSET $3`,
+    [`%${search}%`, limit, offset]
+  )
 
-      if (isNumber) {
-        result = await pool.query(
-          "SELECT * FROM products WHERE price = $1 ORDER BY 1",
-          [search],
-        );
-      } else {
-        result = await pool.query(
-          "SELECT * FROM products WHERE name ILIKE $1 ORDER BY 1",
-          [`%${search}%`],
-        );
-      }
-    } else {
-      result = await pool.query("SELECT * FROM products ORDER BY 1");
-    }
-
-    res.json(result.rows);
-  } catch (error) {
-    console.error("Products error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
+  const count = await pool.query(
+    `SELECT COUNT(*) FROM products WHERE name ILIKE $1`,
+    [`%${search}%`]
+  )
+  res.json({
+    data: data.rows,
+    totalPages: Math.ceil(count.rows[0].count / limit)
+  })
+})
 
 // Add product
 app.post("/products", async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query("BEGIN");
+
     const { name, price, unit, quantity } = req.body;
 
-    const result = await pool.query(
-      "INSERT INTO products (name, price, unit, quantity) VALUES ($1, $2, $3, $4) RETURNING *",
-      [name, price, unit, quantity],
+    const result = await client.query(
+      "INSERT INTO products (name, price, unit, quantity) VALUES ($1,$2,$3,$4) RETURNING *",
+      [name, price, unit, quantity]
     );
 
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error("Add product error:", error);
-    res.status(500).json({ error: error.message });
+    const newProduct = result.rows[0];
+
+    if (quantity > 0) {
+      await client.query(
+        `INSERT INTO inventory_logs 
+        (product_id, product_name, transaction_type, quantity_changed, notes)
+        VALUES ($1,$2,'IN',$3,'Initial Stock Added')`,
+        [newProduct.id, newProduct.name, quantity]
+      );
+    }
+
+    await client.query("COMMIT");
+    res.json(newProduct);
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
@@ -68,7 +80,7 @@ app.put("/products/:id", async (req, res) => {
     const { name, price, unit, quantity } = req.body;
 
     const result = await pool.query(
-      "UPDATE products SET name = $1, price = $2, unit = $3, quantity = $4 WHERE id = $4 RETURNING *",
+      "UPDATE products SET name = $1, price = $2, unit = $3, quantity = $4 WHERE id = $5 RETURNING *",
       [name, price, unit, quantity, id],
     );
 
@@ -178,55 +190,65 @@ app.delete("/customers/:id", async (req, res) => {
 // Save invoice
 app.post("/invoices", async (req, res) => {
   const client = await pool.connect();
+
   try {
+    await client.query("BEGIN");
+
     const { customer_id, invoice_date, subtotal, gst, grand_total, items } = req.body;
 
-    await pool.query("BEGIN")
-
-    for (const item of items) { 
-      const stockResult = await client.query(
-        "SELECT quantity, name FROM products WHERE id = $1",
-        [item.product_id]
-      )
-      const product = stockResult.rows[0]
-      if (!product || product.quantity < item.qty) {
-        await client.query("ROLLBACK")
-        return res.status(400).json({
-          error: `Insufficient stock for "${product?.name || 'Unknown'}". 
-                  Available: ${product?.quantity ?? 0}, Requested: ${item.qty}`
-        })        
-      }
-    }
-
     const invoiceResult = await client.query(
-      "INSERT INTO invoices (customer_id, invoice_date, subtotal, gst, grand_total) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+      `INSERT INTO invoices 
+      (customer_id, invoice_date, subtotal, gst, grand_total)
+      VALUES ($1,$2,$3,$4,$5) RETURNING *`,
       [customer_id, invoice_date, subtotal, gst, grand_total]
-    )
-    const invoice = invoiceResult.rows[0]
+    );
+
+    const invoice = invoiceResult.rows[0];
 
     for (const item of items) {
-      await client.query(
-        "INSERT INTO invoice_items (invoice_id, product_id, product_name, price, qty, unit, total) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-        [invoice.id, item.product_id, item.product_name, item.price, item.qty, item.unit, item.total]
-      )
-    }
 
-    for (const item of items) {
+      // 1. INSERT ITEM
       await client.query(
-        `UPDATE products SET quantity = quantity - $1 WHERE id = $2`,
+        `INSERT INTO invoice_items 
+        (invoice_id, product_id, product_name, price, qty, unit, total)
+        VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [
+          invoice.id,
+          item.product_id,
+          item.product_name,
+          item.price,
+          item.qty,
+          item.unit,
+          item.total
+        ]
+      );
+
+      // 2. DEDUCT STOCK
+      await client.query(
+        "UPDATE products SET quantity = quantity - $1 WHERE id = $2",
         [item.qty, item.product_id]
-      )
+      );
+
+      // 3. LOG OUT 🔥
+      await client.query(
+        `INSERT INTO inventory_logs 
+        (product_id, product_name, transaction_type, quantity_changed, notes)
+        VALUES ($1,$2,'OUT',$3,'Sold via Invoice')`,
+        [item.product_id, item.product_name, item.qty]
+      );
     }
-    await client.query("COMMIT")
-    res.json(invoice)
-  } catch (error) {
-      await client.query("ROLLBACK")
-      console.error("sale invoice errro: ", error)
-      res.status(500).json({error: error.message})
-  }finally{
-    client.release()
+
+    await client.query("COMMIT");
+
+    res.json(invoice);
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
-})
+});
 
 // Get all invoices with customer + items
 app.get("/invoices", async (req, res) => {
@@ -307,6 +329,110 @@ app.get("/sales/weekly", async (req, res) => {
   } catch (error) {
     console.error("weekly sales error: ", error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/inventory/deduct", async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { product_id, product_name, quantity, notes } = req.body;
+
+    const stockCheck = await client.query(
+      "SELECT quantity FROM products WHERE id = $1",
+      [product_id]
+    );
+
+    const current = stockCheck.rows[0]?.quantity || 0;
+
+    if (quantity > current) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: `Not enough stock. Available: ${current}`
+      });
+    }
+
+    await client.query(
+      "UPDATE products SET quantity = quantity - $1 WHERE id = $2",
+      [quantity, product_id]
+    );
+
+    await client.query(
+      `INSERT INTO inventory_logs 
+      (product_id, product_name, transaction_type, quantity_changed, notes)
+      VALUES ($1,$2,'OUT',$3,$4)`,
+      [product_id, product_name, quantity, notes || "Manual Deduction"]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({ success: true });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+app.get("/inventory-logs", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const offset = (page - 1) * limit;
+
+    const logs = await pool.query(
+      "SELECT * FROM inventory_logs ORDER BY timestamp DESC LIMIT $1 OFFSET $2",
+      [limit, offset]
+    );
+
+    const count = await pool.query("SELECT COUNT(*) FROM inventory_logs");
+
+    const totalItems = parseInt(count.rows[0].count);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    res.json({
+      data: logs.rows,
+      totalPages
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/inventory/add", async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { product_id, product_name, quantity, notes } = req.body;
+
+    await client.query(
+      "UPDATE products SET quantity = quantity + $1 WHERE id = $2",
+      [quantity, product_id]
+    );
+
+    await client.query(
+      `INSERT INTO inventory_logs 
+      (product_id, product_name, transaction_type, quantity_changed, notes)
+      VALUES ($1,$2,'IN',$3,$4)`,
+      [product_id, product_name, quantity, notes || "Stock Added"]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({ success: true });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
